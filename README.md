@@ -110,8 +110,8 @@ gold_price_prediction/
 
 1. **Clone the repository**:
 ```bash
-git clone https://github.com/yourusername/gold-price-prediction.git
-cd gold-price-prediction
+git clone https://github.com/ridwaanhall/Gold-Price-Prediction-with-LSTM.git
+cd Gold-Price-Prediction-with-LSTM
 ```
 
 2. **Create virtual environment**:
@@ -395,10 +395,10 @@ pytest --cov=src --cov-report=html
 
 ```bash
 # Build container
-docker build -t gold-price-prediction .
+docker build -t Gold-Price-Prediction-with-LSTM .
 
 # Run container
-docker run -p 8000:8000 gold-price-prediction
+docker run -p 8000:8000 Gold-Price-Prediction-with-LSTM
 
 # Docker Compose for complete stack
 docker-compose up -d
@@ -449,8 +449,8 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/gold-price-prediction.git
-cd gold-price-prediction
+git clone https://github.com/ridwaanhall/Gold-Price-Prediction-with-LSTM.git
+cd Gold-Price-Prediction-with-LSTM
 
 # Install development dependencies
 pip install -r requirements-dev.txt
@@ -480,7 +480,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Authors
 
-- **Your Name** - *Initial work* - [YourGitHub](https://github.com/yourusername)
+- **Ridwan Halim** - *Initial work* - [ridwaanhall](https://github.com/ridwaanhall)
 
 ## 🙏 Acknowledgments
 
