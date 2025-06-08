@@ -495,26 +495,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 2. Bahdanau, D., Cho, K., & Bengio, Y. (2014). Neural machine translation by jointly learning to align and translate.
 3. Bergstra, J., & Bengio, Y. (2012). Random search for hyper-parameter optimization.
 
-## 📞 Support
-
-For support, email support@example.com or join our [Discord](https://discord.gg/example).
-
-## 🗺 Roadmap
-
-### Version 2.0 (Upcoming)
-- [ ] Real-time data streaming
-- [ ] Multi-asset prediction
-- [ ] Advanced ensemble methods
-- [ ] Mobile application
-- [ ] Blockchain integration
-
-### Version 3.0 (Future)
-- [ ] Transformer-based models
-- [ ] Reinforcement learning trading
-- [ ] Quantum machine learning
-- [ ] Edge deployment
-- [ ] Federated learning
-
 ---
 
 ⭐ **Star this repository if you find it helpful!** ⭐
