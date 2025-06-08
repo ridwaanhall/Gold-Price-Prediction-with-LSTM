@@ -1,0 +1,162 @@
+version: '3.8'
+
+services:
+  # Gold Price Prediction API
+  gold-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=info
+      - MODEL_PATH=/app/models/saved_models
+      - DATA_PATH=/app/data
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - gold-prediction-network
+
+  # MLflow Tracking Server
+  mlflow:
+    image: python:3.9-slim
+    command: >
+      bash -c "
+        pip install mlflow psycopg2-binary &&
+        mlflow server 
+        --backend-store-uri sqlite:///mlflow.db
+        --default-artifact-root ./mlruns
+        --host 0.0.0.0
+        --port 5000
+      "
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlflow_data:/mlflow
+      - ./mlruns:/mlruns
+    environment:
+      - MLFLOW_TRACKING_URI=http://localhost:5000
+    working_dir: /mlflow
+    restart: unless-stopped
+    networks:
+      - gold-prediction-network
+
+  # Redis for caching predictions
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - gold-prediction-network
+
+  # PostgreSQL for storing prediction results
+  postgres:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: gold_predictions
+      POSTGRES_USER: gold_user
+      POSTGRES_PASSWORD: gold_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - gold-prediction-network
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - gold-prediction-network
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    restart: unless-stopped
+    networks:
+      - gold-prediction-network
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - gold-api
+      - mlflow
+      - grafana
+    restart: unless-stopped
+    networks:
+      - gold-prediction-network
+
+  # Model training scheduler
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python scripts/scheduler.py
+    environment:
+      - PYTHONPATH=/app
+      - SCHEDULE_TRAINING=daily
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - mlflow
+    restart: unless-stopped
+    networks:
+      - gold-prediction-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  gold-prediction-network:
+    driver: bridge

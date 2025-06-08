@@ -1,0 +1,174 @@
+groups:
+  - name: gold_price_prediction_alerts
+    rules:
+      # API Health Alerts
+      - alert: APIDown
+        expr: up{job="gold-price-api"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Gold Price Prediction API is down"
+          description: "The Gold Price Prediction API has been down for more than 30 seconds."
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="gold-price-api"}[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile response time is {{ $value }}s for the last 2 minutes."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{job="gold-price-api",status=~"5.."}[5m]) / rate(http_requests_total{job="gold-price-api"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 2 minutes."
+
+      # Model Performance Alerts
+      - alert: PredictionAccuracyLow
+        expr: model_prediction_accuracy < 0.7
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Model prediction accuracy is low"
+          description: "Model prediction accuracy is {{ $value | humanizePercentage }}, below the 70% threshold."
+
+      - alert: ModelInferenceTimeHigh
+        expr: histogram_quantile(0.95, rate(prediction_latency_seconds_bucket[5m])) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High model inference time"
+          description: "95th percentile model inference time is {{ $value }}s."
+
+      # System Resource Alerts
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.85
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }} for the last 2 minutes."
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% for the last 5 minutes."
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value }}% available."
+
+      # Database Alerts
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database has been down for more than 30 seconds."
+
+      - alert: PostgreSQLTooManyConnections
+        expr: pg_stat_activity_count > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Too many PostgreSQL connections"
+          description: "PostgreSQL has {{ $value }} active connections."
+
+      # Redis Alerts
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache has been down for more than 30 seconds."
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}."
+
+      # MLflow Alerts
+      - alert: MLflowDown
+        expr: up{job="mlflow"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MLflow tracking server is down"
+          description: "MLflow tracking server has been down for more than 1 minute."
+
+      # Container Alerts
+      - alert: ContainerHighCPU
+        expr: rate(container_cpu_usage_seconds_total{name!=""}[5m]) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container high CPU usage"
+          description: "Container {{ $labels.name }} CPU usage is {{ $value }}%."
+
+      - alert: ContainerHighMemory
+        expr: container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container high memory usage"
+          description: "Container {{ $labels.name }} memory usage is {{ $value | humanizePercentage }}."
+
+  - name: business_logic_alerts
+    rules:
+      # Business Logic Alerts
+      - alert: UnusualPredictionVolume
+        expr: rate(prediction_requests_total[5m]) > 100 or rate(prediction_requests_total[5m]) < 0.1
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Unusual prediction request volume"
+          description: "Prediction request rate is {{ $value }} requests/second, which is unusual."
+
+      - alert: ModelDriftDetected
+        expr: model_drift_score > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Model drift detected"
+          description: "Model drift score is {{ $value }}, indicating potential performance degradation."
+
+      - alert: DataQualityIssue
+        expr: data_quality_score < 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Data quality issue detected"
+          description: "Data quality score is {{ $value }}, below acceptable threshold."
